@@ -1,0 +1,19 @@
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+    http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd"
+    version="2.2">
+    
+    <!-- Unidad de persistencia para la primera base de datos MySQL -->
+    <persistence-unit name="mysqlPU1" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+    	<class>strapi.cms.images.model.Image</class>
+        <properties>
+            <property name="hibernate.connection.url" value="jdbc:mysql://pre-mysql-k8s-2.cvttiannz6eb.eu-west-1.rds.amazonaws.com:3306/ECOMMERCETMB"/>
+            <property name="hibernate.connection.username" value="ecommercetmb_pre"/>
+            <property name="hibernate.connection.password" value="9QYPV2zY1iFB0eR"/>
+            <property name="hibernate.connection.driver_class" value="com.mysql.cj.jdbc.Driver"/>
+            <!-- Otras propiedades de configuración de Hibernate -->
+        </properties>
+    </persistence-unit>
+</persistence>
