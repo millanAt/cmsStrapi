@@ -129,6 +129,8 @@ public class StrapiImagesBO {
               query.setParameter(6, i + 1);
               query.executeUpdate();
 
+            } else if (i == 1) {
+
               // Se añade la imagen de header
               query = entityManager.createNativeQuery(
                   "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
