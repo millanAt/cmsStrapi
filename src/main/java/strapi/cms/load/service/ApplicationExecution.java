@@ -63,10 +63,10 @@ public class ApplicationExecution {
     StrapiWidgetBO strapiWidgetBO = new StrapiWidgetBO();
 
     // Genera los tipos de widgets procedentes de HOLA
-    // strapiWidgetBO.createWidgetType();
+    strapiWidgetBO.createWidgetType();
 
     // Genera los widgets procedentes de HOLA
-    // strapiWidgetBO.createWidgets();
+    strapiWidgetBO.createWidgets();
 
     // Genera los widget pages procedentes de HOLA
     strapiWidgetBO.createWidgetPages();

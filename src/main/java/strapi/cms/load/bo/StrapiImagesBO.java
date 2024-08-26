@@ -139,18 +139,20 @@ public class StrapiImagesBO {
               query.setParameter(5, ImageField.HEADER_IMAGE_SP.getLabel());
               query.setParameter(6, i + 1);
               query.executeUpdate();
-            }
 
-            // Se añade el listado de imágenes al carrusel de imágenes del superProducto
-            query = entityManager.createNativeQuery(
-                "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
-            query.setParameter(1, imageSortSplit[i]);
-            query.setParameter(2, superProductCode);
-            query.setParameter(3, locale.getLabel());
-            query.setParameter(4, ImageRelatedType.SUPER_PRODUCT.getLabel());
-            query.setParameter(5, ImageField.IMAGE_SP.getLabel());
-            query.setParameter(6, i + 1);
-            query.executeUpdate();
+            } else {
+
+              // Se añade el listado de imágenes al carrusel de imágenes del superProducto
+              query = entityManager.createNativeQuery(
+                  "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
+              query.setParameter(1, imageSortSplit[i]);
+              query.setParameter(2, superProductCode);
+              query.setParameter(3, locale.getLabel());
+              query.setParameter(4, ImageRelatedType.SUPER_PRODUCT.getLabel());
+              query.setParameter(5, ImageField.IMAGE_SP.getLabel());
+              query.setParameter(6, i + 1);
+              query.executeUpdate();
+            }
           }
 
         }
