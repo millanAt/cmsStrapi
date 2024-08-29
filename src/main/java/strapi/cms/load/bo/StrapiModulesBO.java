@@ -29,6 +29,51 @@ public class StrapiModulesBO {
 
   private EntityManager entityManager;
 
+
+
+  /**
+   * Inicializa los modulos de todos los superproductos.
+   */
+  public void initializeModules() {
+    entityManager = EntityManagerUtil.getMySQLEntityManager();
+    entityManager.getTransaction().begin();
+
+    Query query = entityManager
+        .createNativeQuery("delete from CMSSTRAPI.module_boxes_super_product_id_links");
+    query.executeUpdate();
+    query =
+        entityManager.createNativeQuery("delete from CMSSTRAPI.module_boxes_localizations_links");
+    query.executeUpdate();
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.module_boxes");
+    query.executeUpdate();
+    query = entityManager
+        .createNativeQuery("delete from CMSSTRAPI.module_accordions_super_product_id_links");
+    query.executeUpdate();
+    query = entityManager
+        .createNativeQuery("delete from CMSSTRAPI.module_accordions_localizations_links");
+    query.executeUpdate();
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.module_accordions");
+    query.executeUpdate();
+    query = entityManager
+        .createNativeQuery("delete from CMSSTRAPI.module_link_downloads_super_product_id_links");
+    query.executeUpdate();
+    query = entityManager
+        .createNativeQuery("delete from CMSSTRAPI.module_link_downloads_localizations_links");
+    query.executeUpdate();
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.module_link_downloads");
+    query.executeUpdate();
+
+    query = entityManager.createNativeQuery(
+        "UPDATE CMSSTRAPI.super_products SET module_slider = 0, module_box = 0, module_accordion = 0, module_link_download= 0, "
+            + "module_corporation_logo = 0, module_box_title = null, module_accordion_title = null, module_slider_title = null");
+    query.executeUpdate();
+    entityManager.getTransaction().commit();
+
+
+    entityManager.close();
+
+  }
+
   /**
    * Crea un modulo link download por cada uno de los tabs asociados a un producto (un modulo por
    * cada idioma de producto).
@@ -412,24 +457,6 @@ public class StrapiModulesBO {
       entityManager.getTransaction().commit();
 
     }
-
-    entityManager.close();
-
-  }
-
-  /**
-   * Inicializa los modulos de todos los superproductos.
-   */
-  public void initializeModules() {
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
-    entityManager.getTransaction().begin();
-
-    Query query = entityManager.createNativeQuery(
-        "UPDATE CMSSTRAPI.super_products SET module_slider = 0, module_box = 0, module_accordion = 0, module_link_download= 0, "
-            + "module_corporation_logo = 0, module_box_title = null, module_accordion_title = null, module_slider_title = null");
-    query.executeUpdate();
-    entityManager.getTransaction().commit();
-
 
     entityManager.close();
 
