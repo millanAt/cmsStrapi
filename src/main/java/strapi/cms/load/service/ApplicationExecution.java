@@ -1,28 +1,46 @@
 package strapi.cms.load.service;
 
 import java.io.IOException;
+import javax.persistence.EntityManagerFactory;
 import strapi.cms.load.bo.StrapiImagesBO;
 import strapi.cms.load.bo.StrapiModulesBO;
 import strapi.cms.load.bo.StrapiWidgetBO;
+import strapi.cms.load.utils.EntityManagerUtil;
 
 public class ApplicationExecution {
 
   public static void main(String[] args) throws IOException {
 
-    // ------------- CARGA IMÁGENES ---------------------------
-    loadImages();
+    // Obtener los valores de dbUrl, username y password de las variables de entorno
+    String dbUrl = System.getenv("DB_URL");
+    String username = System.getenv("DB_USER");
+    String password = System.getenv("DB_PASS");
 
-    // ------------- CARGA MÓDULOS ---------------------------
-    loadModules();
+    if (dbUrl == null || username == null || password == null) {
+      System.out.println(
+          "No se puede realizar la carga de imágenes, módulos y widgets en Strapi porque no se han definido las variables de entorno");
+    } else {
 
-    // ------------- CARGA WIDGETS ---------------------------
-    loadWidgets();
+      EntityManagerFactory emf =
+          EntityManagerUtil.getEntityManagerFactory(dbUrl, username, password);
 
+      // ------------- CARGA IMÁGENES ---------------------------
+      loadImages(emf);
+
+      // ------------- CARGA MÓDULOS ---------------------------
+      loadModules(emf);
+
+      // ------------- CARGA WIDGETS ---------------------------
+      loadWidgets(emf);
+    }
   }
 
-  public static void loadImages() throws IOException {
+  public static void loadImages(EntityManagerFactory emf) throws IOException {
     System.out.println("//////////// Cargando imágenes procedentes de HOLA ////////////");
-    StrapiImagesBO strapiImagesBO = new StrapiImagesBO();
+    StrapiImagesBO strapiImagesBO = new StrapiImagesBO(emf);
+
+    // Inicializa todas las imagenes y las relaciones con los superproductos.
+    strapiImagesBO.initializeImages();
 
     // Importa imagenes procedentes del Hola en los superproductos
     strapiImagesBO.importImagesFromHola();
@@ -31,13 +49,13 @@ public class ApplicationExecution {
         "----------------- Carga y asociación de imágenes a productos finalizada -----------------");
   }
 
-  public static void loadModules() {
+  public static void loadModules(EntityManagerFactory emf) {
     System.out.println("//////////// Creando módulos procedentes de HOLA ////////////");
 
-    StrapiModulesBO strapiModulesBO = new StrapiModulesBO();
+    StrapiModulesBO strapiModulesBO = new StrapiModulesBO(emf);
     boolean onlyEnabled = true;
 
-    // Inicializa los modulos de todos los superproductos como desactivados
+    // Inicializa los modulos de todos los superproductos
     strapiModulesBO.initializeModules();
 
     // Creación de módulos Box y asociación a super productos
@@ -58,9 +76,9 @@ public class ApplicationExecution {
     System.out.println("----------------- Creación de módulos finalizada -----------------");
   }
 
-  public static void loadWidgets() {
+  public static void loadWidgets(EntityManagerFactory emf) {
     System.out.println("//////////// Generación de widgets procedentes de HOLA ////////////");
-    StrapiWidgetBO strapiWidgetBO = new StrapiWidgetBO();
+    StrapiWidgetBO strapiWidgetBO = new StrapiWidgetBO(emf);
 
     // Inicializa los widget
     strapiWidgetBO.initializeWidgets();

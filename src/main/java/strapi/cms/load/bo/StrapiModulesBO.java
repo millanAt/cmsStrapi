@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import com.mysql.cj.util.StringUtils;
@@ -17,7 +18,6 @@ import strapi.cms.load.dto.ModuleAccordionDTO;
 import strapi.cms.load.dto.ModuleBoxDTO;
 import strapi.cms.load.dto.ModuleLinkDownloadDTO;
 import strapi.cms.load.dto.ModuleSliderDTO;
-import strapi.cms.load.utils.EntityManagerUtil;
 import strapi.cms.load.utils.JacksonUtils;
 import strapi.cms.loads.enums.ImageField;
 import strapi.cms.loads.enums.ImageRelatedType;
@@ -27,15 +27,20 @@ import strapi.cms.loads.enums.ModuleType;
 @Stateless
 public class StrapiModulesBO {
 
+  private EntityManagerFactory emf;
   private EntityManager entityManager;
 
 
+  public StrapiModulesBO(EntityManagerFactory emf) {
+    super();
+    this.emf = emf;
+  }
 
   /**
    * Inicializa los modulos de todos los superproductos.
    */
   public void initializeModules() {
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
+    entityManager = emf.createEntityManager();
     entityManager.getTransaction().begin();
 
     Query query = entityManager
@@ -80,6 +85,8 @@ public class StrapiModulesBO {
    */
   @SuppressWarnings("rawtypes")
   public void createLinkDownloadModuleAndAssociateToProduct(boolean onlyEnabled) {
+
+    entityManager = emf.createEntityManager();
 
     // Obtener el listado de superProductos (id de Strapi) y configuraciones del módulo LINK
     // DOWNLOAD
@@ -162,6 +169,8 @@ public class StrapiModulesBO {
    */
   @SuppressWarnings("rawtypes")
   public void createBoxModuleAndAssociateToProduct(boolean onlyEnabled) {
+
+    entityManager = emf.createEntityManager();
 
     // Obtener el listado de superProductos (id de Strapi) y configuraciones del módulo BOX
     List<Object[]> queryResultList = this.getModuleConfigFromHola(ModuleType.BOX, onlyEnabled);
@@ -246,6 +255,8 @@ public class StrapiModulesBO {
    */
   @SuppressWarnings("rawtypes")
   public void createAccordionModuleAndAssociateToProduct(boolean onlyEnabled) {
+
+    entityManager = emf.createEntityManager();
 
     // Obtener el listado de superProductos (id de Strapi) y configuraciones del módulo ACCORDION
     List<Object[]> queryResultList =
@@ -332,6 +343,8 @@ public class StrapiModulesBO {
   @SuppressWarnings("rawtypes")
   public void activateOrDesactivateSliderModuleOnProduct(boolean onlyEnabled) {
 
+    entityManager = emf.createEntityManager();
+
     // Obtener el listado de superProductos (id de Strapi) y configuraciones del módulo BOX
     List<Object[]> queryResultList = this.getModuleConfigFromHola(ModuleType.SLIDER, onlyEnabled);
 
@@ -404,6 +417,8 @@ public class StrapiModulesBO {
    */
   @SuppressWarnings("rawtypes")
   public void activateOrDesactivateLogoModuleOnProduct(boolean onlyEnabled) {
+
+    entityManager = emf.createEntityManager();
 
     // Obtener el listado de superProductos (id de Strapi) y configuraciones del módulo BOX
     List<Object[]> queryResultList =
@@ -483,7 +498,7 @@ public class StrapiModulesBO {
 
         // Se crea una entrada en el modulo BOX para el producto dado
         Query query = entityManager.createNativeQuery(
-            "INSERT INTO CMSSTRAPI.module_boxes (title, tag, link, enabled, created_at, updated_at, locale) values (?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO CMSSTRAPI.module_boxes (title, tag, link, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
         query.setParameter(1, moduleBoxDto.getTab(i + 1).getTitle().getLanguage(locale));
         query.setParameter(2, moduleBoxDto.getTab(i + 1).getTag().getLanguage(locale));
         query.setParameter(3, moduleBoxDto.getTab(i + 1).getLink().getLanguage(locale));
@@ -527,7 +542,7 @@ public class StrapiModulesBO {
 
     // Se crea una entrada en el modulo BOX para el producto dado
     Query query = entityManager.createNativeQuery(
-        "INSERT INTO CMSSTRAPI.module_link_downloads (title, link, created_at, updated_at, locale) values (?, ?, ?, ?, ?)");
+        "INSERT INTO CMSSTRAPI.module_link_downloads (title, link, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
     query.setParameter(1, moduleLinkDto.getTitle().getLanguage(locale));
     query.setParameter(2, moduleLinkDto.getLink().getLanguage(locale));
     query.setParameter(3, today);
@@ -569,7 +584,7 @@ public class StrapiModulesBO {
 
         // Se crea una entrada en el modulo ACCORDION para el producto dado
         Query query = entityManager.createNativeQuery(
-            "INSERT INTO CMSSTRAPI.module_accordions (title, description, title_link, link, category_analytics, title_class, enabled, created_at, updated_at, locale) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO CMSSTRAPI.module_accordions (title, description, title_link, link, category_analytics, title_class, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
         query.setParameter(1, moduleAccordionDto.getTab(i + 1).getTitle().getLanguage(locale));
         query.setParameter(2,
             moduleAccordionDto.getTab(i + 1).getDescription().getLanguage(locale));
@@ -606,6 +621,7 @@ public class StrapiModulesBO {
   @SuppressWarnings("unchecked")
   private void createProductModuleRelationAndAssignImages(String imageOrders,
       Integer superProductId, Long moduleId, ModuleType moduleType) {
+
     Query query;
 
     String sql = ("INSERT INTO CMSSTRAPI.module_Y_super_product_id_links "
@@ -706,7 +722,7 @@ public class StrapiModulesBO {
 
     Query query;
     List<Object[]> queryResultList;
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
+    // entityManager = EntityManagerUtil.getMySQLEntityManager();
 
     if (onlyEnabled) {
 

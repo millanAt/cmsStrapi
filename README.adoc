@@ -1,0 +1,13 @@
+= STRAPI
+
+== Subida de imágenes, carga de módulos y widgets
+
+Antes de ejecutar la aplicación se deben definir las siguientes variables de entorno:
+
+* **DB_PASS=** default_user
+* **DB_URL=**jdbc:mysql://localhost:3306/MiBaseDatos
+* **DB_USER=** default_user
+* **ENVIRONMENT=** PRO
+* **TOKEN=** 750xxxx09965392d
+
+Una vez definida ejecutar el main de la clase ApplicationExecution.

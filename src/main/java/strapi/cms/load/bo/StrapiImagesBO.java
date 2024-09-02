@@ -12,12 +12,12 @@ import java.util.Iterator;
 import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import strapi.cms.load.dto.ImageDTO;
 import strapi.cms.load.dto.UploadImageResultDTO;
 import strapi.cms.load.service.StrapiRequesterService;
 import strapi.cms.load.utils.Constants;
-import strapi.cms.load.utils.EntityManagerUtil;
 import strapi.cms.loads.enums.ImageField;
 import strapi.cms.loads.enums.ImageRelatedType;
 import strapi.cms.loads.enums.LocaleStrapi;
@@ -25,11 +25,46 @@ import strapi.cms.loads.enums.LocaleStrapi;
 @Stateless
 public class StrapiImagesBO {
 
+  private EntityManagerFactory emf;
+  private EntityManager entityManager;
+
+
+  public StrapiImagesBO(EntityManagerFactory emf) {
+    super();
+    this.emf = emf;
+  }
+
+  /**
+   * Inicializa los modulos de todos los superproductos.
+   */
+  public void initializeImages() {
+    entityManager = emf.createEntityManager();
+    entityManager.getTransaction().begin();
+
+    Query query = entityManager.createNativeQuery("delete from CMSSTRAPI.files_related_morphs");
+    query.executeUpdate();
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.files_folder_links");
+    query.executeUpdate();
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.files");
+    query.executeUpdate();
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.image_relateds");
+    query.executeUpdate();
+
+    entityManager.getTransaction().commit();
+
+
+    entityManager.close();
+
+  }
+
+
   @SuppressWarnings({"rawtypes", "unchecked"})
   public void importImagesFromHola() throws IOException {
 
+    // Crear un nuevo EntityManager por transacción o por petición
+    entityManager = emf.createEntityManager();
+
     StrapiRequesterService strapiRequest = new StrapiRequesterService();
-    EntityManager entityManager = EntityManagerUtil.getMySQLEntityManager();
 
     // Obtener el listado de imagenes de HOLA
     Query query = entityManager.createNativeQuery("SELECT * FROM image i");
@@ -70,12 +105,11 @@ public class StrapiImagesBO {
           // Se añade en STRAPI la relación id de imagen de ECNR y el id de imagen de STRAPI
           if (uploadResult != null) {
             query = entityManager.createNativeQuery(
-                "INSERT INTO CMSSTRAPI.image_relateds (image_ecnr, image_strapi, created_at, updated_at, created_by_id) VALUES (?, ?, ?, ?, ?)");
+                "INSERT INTO CMSSTRAPI.image_relateds (image_ecnr, image_strapi, created_at, updated_at, created_by_id) VALUES (?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users))");
             query.setParameter(1, imageDto.getImageId());
             query.setParameter(2, uploadResult.getId());
             query.setParameter(3, today);
             query.setParameter(4, today);
-            query.setParameter(5, 1);
 
             // Ejecutar la consulta
             query.executeUpdate();
@@ -167,8 +201,14 @@ public class StrapiImagesBO {
   }
 
   public Path getImageFromUrl(ImageDTO imageDto) {
-    String imageUrl = String.format(Constants.IMAGE_URL, imageDto.getImageId(),
-        imageDto.getHeight(), imageDto.getWidth(), imageDto.getName(), imageDto.getExtension());
+
+    String environment = System.getenv("ENVIRONMENT");
+    String baseURL =
+        environment.equalsIgnoreCase("pro") ? Constants.IMAGE_URL_PRO : Constants.IMAGE_URL_PRE;
+
+    String imageUrl = String.format(baseURL, imageDto.getImageId(), imageDto.getHeight(),
+        imageDto.getWidth(), imageDto.getName(), imageDto.getExtension());
+
     String resourceDir = Constants.RESOURCE_DIR;
     String destinationFileName = String.format("%s_%s.%s", imageDto.getName(),
         imageDto.getImageId(), imageDto.getExtension());

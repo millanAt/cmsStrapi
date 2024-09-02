@@ -15,27 +15,16 @@ import javax.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.file.FileDataBodyPart;
 import strapi.cms.load.dto.UploadImageResultDTO;
+import strapi.cms.load.utils.Constants;
 import strapi.cms.load.utils.RestClient;
 
 @Stateless
 @Named("StrapiRequester")
 public class StrapiRequesterService extends RestClient {
 
-
-  // @Inject
-  // private Logger log;
-
-  private static String TOKEN =
-      "Bearer a64101d86de6b2fb3d6b97be040025d2d90bd79c71fc337eed34327e7fbb864da0c7070422910b85f05669c488ed7b4974550b99bab5482698ef2d08a9a44209d55b1b44c7517bb74a904b17bb63319bfc64b1771bf74365e7e26f19f57c45d40e68905e311ec3baf3e1a3ef42890ed8146bd72a243650bea75b40afbe7f4013";
-
-  // START - MODULE PARAMETRE_TECNIC
-
   public Client getRestClient() {
     Integer connectTimeout = 5;
     Integer readTimeout = 15;
-    // log.debug("create http client for TMBC connectTimeout = {}, readTimeout = {}",
-    // connectTimeout,
-    // readTimeout);
 
     Client client = getClient(connectTimeout, readTimeout);
     return client;
@@ -47,23 +36,27 @@ public class StrapiRequesterService extends RestClient {
 
     List<UploadImageResultDTO> resultList = new ArrayList<>();
 
-    MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
-    headers.add("Authorization", TOKEN);
+    String token = String.format("Bearer %s", System.getenv("TOKEN"));
 
-    String baseUrl = "https://pre.c1.cloud-2.tmb.cat/cms";
+    MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
+    headers.add("Authorization", token);
+
+    String environment = System.getenv("ENVIRONMENT");
+    String baseURL =
+        environment.equalsIgnoreCase("pro") ? Constants.BASE_URL_PRO : Constants.BASE_URL_PRE;
+
     String imagePath = "/api/upload";
     Client client = getRestClient();
 
     try {
 
-      // File file = new File(fileName);
       FileDataBodyPart filePart = new FileDataBodyPart("files", file);
 
       FormDataMultiPart multiPart = new FormDataMultiPart();
       multiPart.bodyPart(filePart);
 
 
-      Response response = client.target(baseUrl + imagePath).request(MediaType.MULTIPART_FORM_DATA)
+      Response response = client.target(baseURL + imagePath).request(MediaType.MULTIPART_FORM_DATA)
           .headers(headers).post(Entity.entity(multiPart, MediaType.MULTIPART_FORM_DATA));
 
       if (response.getStatus() == 200) {
@@ -71,7 +64,6 @@ public class StrapiRequesterService extends RestClient {
       }
 
     } catch (Exception e) {
-      // log.error("ERROR");
       System.out.println(e.getMessage());
     }
 

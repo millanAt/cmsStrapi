@@ -8,20 +8,27 @@ import java.util.List;
 import java.util.Map;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import org.apache.commons.lang3.StringUtils;
-import strapi.cms.load.utils.EntityManagerUtil;
 
 @Stateless
 public class StrapiWidgetBO {
 
+  private EntityManagerFactory emf;
   private EntityManager entityManager;
+
+
+  public StrapiWidgetBO(EntityManagerFactory emf) {
+    super();
+    this.emf = emf;
+  }
 
   /**
    * Inicializa los modulos de todos los superproductos.
    */
   public void initializeWidgets() {
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
+    entityManager = emf.createEntityManager();
     entityManager.getTransaction().begin();
 
     Query query =
@@ -51,9 +58,9 @@ public class StrapiWidgetBO {
   @SuppressWarnings({"rawtypes", "unchecked"})
   public void createWidgetType() {
 
-    System.out.println("----------  Creando widget types en Strapi ----------");
+    entityManager = emf.createEntityManager();
 
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
+    System.out.println("----------  Creando widget types en Strapi ----------");
 
     // Obtiene el listado de tipos de widgets
     Query query = entityManager
@@ -78,15 +85,13 @@ public class StrapiWidgetBO {
 
         query = entityManager.createNativeQuery(
             "INSERT CMSSTRAPI.widget_types (name, configuration, config_required, created_at, updated_at, published_at, created_by_id, updated_by_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                + "VALUES (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
         query.setParameter(1, name);
         query.setParameter(2, StringUtils.isNotBlank(config) ? config : null);
         query.setParameter(3, enabled);
         query.setParameter(4, today);
         query.setParameter(5, today);
         query.setParameter(6, today);
-        query.setParameter(7, 1);
-        query.setParameter(8, 1);
         query.executeUpdate();
       }
 
@@ -106,9 +111,9 @@ public class StrapiWidgetBO {
   @SuppressWarnings({"rawtypes", "unchecked"})
   public void createWidgets() {
 
-    System.out.println("----------  Creando widget en Strapi ----------   ");
+    entityManager = emf.createEntityManager();
 
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
+    System.out.println("----------  Creando widget en Strapi ----------   ");
 
     // Obtiene el listado de widgets
     Query query = entityManager.createNativeQuery(
@@ -135,15 +140,13 @@ public class StrapiWidgetBO {
 
         query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widgets "
             + "(name, configuration, active, created_at, updated_at, published_at, created_by_id, updated_by_id) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            + "VALUES (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
         query.setParameter(1, name);
         query.setParameter(2, StringUtils.isNotBlank(config) ? config : null);
         query.setParameter(3, active);
         query.setParameter(4, today);
         query.setParameter(5, today);
         query.setParameter(6, today);
-        query.setParameter(7, 1);
-        query.setParameter(8, 1);
         query.executeUpdate();
 
         // Obtén el ID generado por la base de datos
@@ -173,9 +176,10 @@ public class StrapiWidgetBO {
   @SuppressWarnings({"rawtypes", "unchecked"})
   public void createWidgetPages() {
 
+    entityManager = emf.createEntityManager();
+
     System.out.println(" ----------  Creando widget pages en Strapi ---------------");
 
-    entityManager = EntityManagerUtil.getMySQLEntityManager();
     Map<String, List<Long>> widgetPageIdMap = new HashMap<>();
 
     // Obtiene el listado de widgets
@@ -217,7 +221,7 @@ public class StrapiWidgetBO {
 
         query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widget_pages "
             + "(name, path, enabled, meta_title, meta_keywords, meta_description, locale, created_at, updated_at, published_at, created_by_id, updated_by_id) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
         query.setParameter(1, name);
         query.setParameter(2, path);
         query.setParameter(3, enabled);
@@ -228,8 +232,6 @@ public class StrapiWidgetBO {
         query.setParameter(8, today);
         query.setParameter(9, today);
         query.setParameter(10, today);
-        query.setParameter(11, 1);
-        query.setParameter(12, 1);
         query.executeUpdate();
 
         // Obtén el ID generado por la base de datos
@@ -244,6 +246,8 @@ public class StrapiWidgetBO {
         this.relatedLanguageWidgets(name, ids);
 
         // Creamos links entre widgets y widgetPages
+        System.out.println("Generando relaciones entre widgets para el widget page: " + name);
+
         for (Long id : ids) {
           this.createLinkBetweenWidgetAndWidgetPage(name, id);
         }
@@ -269,15 +273,15 @@ public class StrapiWidgetBO {
   @SuppressWarnings({"rawtypes", "unchecked"})
   private void createLinkBetweenWidgetAndWidgetPage(String name, Long widgetPageId) {
 
-    System.out.println("Generando relaciones entre widgets para el widget page: " + name);
-
     Query query;
     Object[] row;
     // Obtiene el listado de widgets
-    query = entityManager
-        .createNativeQuery("SELECT w.name, ROW_NUMBER() OVER (ORDER BY position) AS order_page "
-            + "FROM widget_location wl LEFT JOIN widget w ON w.id = wl.widget_id "
-            + "WHERE widgetPage_id = (SELECT id FROM widget_page WHERE name = ?)");
+    query = entityManager.createNativeQuery("WITH UniqueWidgets AS (SELECT w.name, "
+        + "     ROW_NUMBER() OVER (PARTITION BY w.name ORDER BY position) AS row_num,"
+        + "     ROW_NUMBER() OVER (ORDER BY position) AS order_page FROM widget_location wl "
+        + "LEFT JOIN widget w ON w.id = wl.widget_id "
+        + "WHERE widgetPage_id = (SELECT id FROM widget_page WHERE name = ?))"
+        + "SELECT name, order_page FROM UniqueWidgets WHERE row_num = 1 ORDER BY order_page;");
     query.setParameter(1, name);
     List<Object[]> widgetLocationList = query.getResultList();
 
