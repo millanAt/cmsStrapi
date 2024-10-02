@@ -728,20 +728,34 @@ public class StrapiModulesBO {
 
       // Obtiene el listado de superProductos (id de Strapi) y configuraciones del módulo
       // determinado que estén habilitados
-      query = entityManager.createNativeQuery(
-          "SELECT p.superproduct_id, pm.config, pm.enabled FROM product_module pm "
-              + "left join product p on pm.product_id = p.id left join module m on pm.module_id = m.id "
-              + "WHERE p.superproduct_id != '' and m.name = ? and pm.enabled = ?");
+      query = entityManager.createNativeQuery("SELECT "
+          + "case WHEN p.superproduct_id LIKE '712' THEN 'easyMontserratMountain' "
+          + "WHEN p.superproduct_id LIKE '713' THEN 'montserratMountainAndGaudi' "
+          + "WHEN p.superproduct_id LIKE '714' THEN 'pyreneesVallDeNuria' "
+          + "WHEN p.superproduct_id LIKE '715' THEN 'daliMuseumFigueresAndGirona' "
+          + "WHEN p.superproduct_id LIKE '716' THEN 'wineAndCava' "
+          + "WHEN p.superproduct_id LIKE '717' THEN 'laRocaVillageShoppingExpressTour' "
+          + "WHEN p.superproduct_id LIKE '720' THEN 'theMontserratTourAllIncluded' "
+          + "ELSE p.superproduct_id END, pm.config, pm.enabled FROM product_module pm "
+          + "left join product p on pm.product_id = p.id left join module m on pm.module_id = m.id "
+          + "WHERE p.superproduct_id != '' and m.name = ? and pm.enabled = ?");
       query.setParameter(1, moduleType.name());
       query.setParameter(2, 1); // Solo carga los marcados como activos
 
     } else {
       // Obtiene el listado de superProductos (id de Strapi) y configuraciones del módulo
       // determinado
-      query = entityManager.createNativeQuery(
-          "SELECT p.superproduct_id, pm.config, pm.enabled FROM product_module pm "
-              + "left join product p on pm.product_id = p.id left join module m on pm.module_id = m.id "
-              + "WHERE p.superproduct_id != '' and m.name = ?");
+      query = entityManager.createNativeQuery("SELECT "
+          + "case WHEN p.superproduct_id LIKE '712' THEN 'easyMontserratMountain' "
+          + "WHEN p.superproduct_id LIKE '713' THEN 'montserratMountainAndGaudi' "
+          + "WHEN p.superproduct_id LIKE '714' THEN 'pyreneesVallDeNuria' "
+          + "WHEN p.superproduct_id LIKE '715' THEN 'daliMuseumFigueresAndGirona' "
+          + "WHEN p.superproduct_id LIKE '716' THEN 'wineAndCava' "
+          + "WHEN p.superproduct_id LIKE '717' THEN 'laRocaVillageShoppingExpressTour' "
+          + "WHEN p.superproduct_id LIKE '720' THEN 'theMontserratTourAllIncluded' "
+          + "ELSE p.superproduct_id END, pm.config, pm.enabled FROM product_module pm "
+          + "left join product p on pm.product_id = p.id left join module m on pm.module_id = m.id "
+          + "WHERE p.superproduct_id != '' and m.name = ?");
       query.setParameter(1, moduleType.name());
     }
     queryResultList = query.getResultList();

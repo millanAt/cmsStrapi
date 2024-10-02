@@ -64,7 +64,8 @@ public class StrapiRequesterService extends RestClient {
       }
 
     } catch (Exception e) {
-      System.out.println(e.getMessage());
+      System.out.println(
+          "Ha fallado la subida de la imagen: " + file.getName() + ". Error: " + e.getMessage());
     }
 
     client.close();

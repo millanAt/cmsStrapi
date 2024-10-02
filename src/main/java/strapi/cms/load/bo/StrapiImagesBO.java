@@ -89,8 +89,8 @@ public class StrapiImagesBO {
         imageDto.setImageId(((Number) row[0]).longValue());
         imageDto.setName(((String) row[1]));
         imageDto.setExtension(((String) row[3]));
-        imageDto.setWidth(((Integer) row[4]));
-        imageDto.setHeight(((Integer) row[5]));
+        imageDto.setWidth(((Integer) row[5]));
+        imageDto.setHeight(((Integer) row[6]));
         imageList.add(imageDto);
 
         // Descargamos la imagen de HOLA en nuestro equipo
@@ -125,7 +125,22 @@ public class StrapiImagesBO {
 
       // Obtener el listado de imagenes asociados a cada superproducto del HOLA
       query = entityManager.createNativeQuery(
-          "SELECT superproduct_id, images_sort FROM product WHERE superproduct_id IN (SELECT code FROM CMSSTRAPI.super_products)");
+          "SELECT case WHEN superproduct_id LIKE '712' THEN 'easyMontserratMountain' "
+              + "WHEN superproduct_id LIKE '713' THEN 'montserratMountainAndGaudi' "
+              + "WHEN superproduct_id LIKE '714' THEN 'pyreneesVallDeNuria' "
+              + "WHEN superproduct_id LIKE '715' THEN 'daliMuseumFigueresAndGirona' "
+              + "WHEN superproduct_id LIKE '716' THEN 'wineAndCava' "
+              + "WHEN superproduct_id LIKE '717' THEN 'laRocaVillageShoppingExpressTour' "
+              + "WHEN superproduct_id LIKE '720' THEN 'theMontserratTourAllIncluded' "
+              + "ELSE superproduct_id END, images_sort FROM product WHERE superproduct_id IN ("
+              + "SELECT case WHEN code LIKE 'easyMontserratMountain' THEN '712' "
+              + "WHEN code LIKE 'montserratMountainAndGaudi' THEN '713' "
+              + "WHEN code LIKE 'pyreneesVallDeNuria' THEN '714' "
+              + "WHEN code LIKE 'daliMuseumFigueresAndGirona' THEN '715' "
+              + "WHEN code LIKE 'wineAndCava' THEN '716' "
+              + "WHEN code LIKE 'laRocaVillageShoppingExpressTour' THEN '717' "
+              + "WHEN code LIKE 'theMontserratTourAllIncluded' THEN '720' "
+              + "ELSE code END FROM CMSSTRAPI.super_products)");
       queryResultList = query.getResultList();
 
       entityManager.getTransaction().begin();
