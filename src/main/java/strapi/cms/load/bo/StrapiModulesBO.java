@@ -19,6 +19,7 @@ import strapi.cms.load.dto.ModuleBoxDTO;
 import strapi.cms.load.dto.ModuleLinkDownloadDTO;
 import strapi.cms.load.dto.ModuleSliderDTO;
 import strapi.cms.load.utils.JacksonUtils;
+import strapi.cms.load.utils.Utils;
 import strapi.cms.loads.enums.ImageField;
 import strapi.cms.loads.enums.ImageRelatedType;
 import strapi.cms.loads.enums.LocaleStrapi;
@@ -43,27 +44,18 @@ public class StrapiModulesBO {
     entityManager = emf.createEntityManager();
     entityManager.getTransaction().begin();
 
-    Query query = entityManager
-        .createNativeQuery("delete from CMSSTRAPI.module_boxes_super_product_id_links");
-    query.executeUpdate();
-    query =
-        entityManager.createNativeQuery("delete from CMSSTRAPI.module_boxes_localizations_links");
+    Query query =
+        entityManager.createNativeQuery("delete from CMSSTRAPI.module_boxes_super_product_id_lnk");
     query.executeUpdate();
     query = entityManager.createNativeQuery("delete from CMSSTRAPI.module_boxes");
     query.executeUpdate();
     query = entityManager
-        .createNativeQuery("delete from CMSSTRAPI.module_accordions_super_product_id_links");
-    query.executeUpdate();
-    query = entityManager
-        .createNativeQuery("delete from CMSSTRAPI.module_accordions_localizations_links");
+        .createNativeQuery("delete from CMSSTRAPI.module_accordions_super_product_id_lnk");
     query.executeUpdate();
     query = entityManager.createNativeQuery("delete from CMSSTRAPI.module_accordions");
     query.executeUpdate();
     query = entityManager
-        .createNativeQuery("delete from CMSSTRAPI.module_link_downloads_super_product_id_links");
-    query.executeUpdate();
-    query = entityManager
-        .createNativeQuery("delete from CMSSTRAPI.module_link_downloads_localizations_links");
+        .createNativeQuery("delete from CMSSTRAPI.module_link_downloads_super_product_id_lnk");
     query.executeUpdate();
     query = entityManager.createNativeQuery("delete from CMSSTRAPI.module_link_downloads");
     query.executeUpdate();
@@ -113,6 +105,10 @@ public class StrapiModulesBO {
         // Se añade en STRAPI la configuración del módulo BOX para el producto determinado
         if (config != null) {
 
+          // Generamos un identificador único de módulo relacionadao con un determinado super
+          // producto
+          String documentId = Utils.generateDocumentId();
+
           ModuleLinkDownloadDTO moduleLinkDownDto =
               JacksonUtils.toObject(config, ModuleLinkDownloadDTO.class);
           List<Long> moduleLinkList = new ArrayList<>();
@@ -145,13 +141,10 @@ public class StrapiModulesBO {
 
               // Genera los diferetes modulos link download para cada uno de los productos
               generateModuleLinkDownloadFromConfig(moduleLinkDownDto, moduleLinkList, locale,
-                  superProductId);
+                  superProductId, documentId);
             }
 
           }
-
-          // Relaciona módulos de idiomas
-          relatedLanguageModules(moduleLinkList, ModuleType.LINK_DOWNLOAD);
 
         }
 
@@ -196,6 +189,10 @@ public class StrapiModulesBO {
           ModuleBoxDTO moduleBoxDto = JacksonUtils.toObject(config, ModuleBoxDTO.class);
           Map<Integer, List<Long>> moduleBoxList = new HashMap<>();
 
+          // Generamos un identificador único de módulo relacionadao con un determinado super
+          // producto
+          String documentId = Utils.generateDocumentId();
+
           // Creamos una entrada en el módulo de BOX para cada uno de los idiomas dados
           for (LocaleStrapi locale : LocaleStrapi.getValues()) {
 
@@ -226,15 +223,13 @@ public class StrapiModulesBO {
               query.executeUpdate();
 
               // Genera los diferetes modulos BOX (tab1, tab2, ...) para cada uno de los productos
-              generateModuleBoxFromConfig(moduleBoxDto, moduleBoxList, locale, superProductId);
+              generateModuleBoxFromConfig(moduleBoxDto, moduleBoxList, locale, superProductId,
+                  documentId);
             }
 
           }
 
           System.out.println("Creando relaciones entre el módulo y los diferentes idiomas ");
-
-          // Relaciona módulos de idiomas por tab
-          relatedLanguageModulesByTab(moduleBoxList, ModuleType.BOX);
 
         }
 
@@ -284,6 +279,8 @@ public class StrapiModulesBO {
               JacksonUtils.toObject(config, ModuleAccordionDTO.class);
           Map<Integer, List<Long>> moduleAccordionList = new HashMap<>();
 
+          String documentId = Utils.generateDocumentId();
+
           // Creamos una entrada en el módulo de ACCORDION para cada uno de los idiomas dados
           for (LocaleStrapi locale : LocaleStrapi.getValues()) {
 
@@ -316,13 +313,10 @@ public class StrapiModulesBO {
               // Genera los diferetes modulos ACCORDION (tab1, tab2, ...) para cada uno de los
               // productos
               generateModuleAccordionFromConfig(moduleAccordionDto, moduleAccordionList, locale,
-                  superProductId);
+                  superProductId, documentId);
             }
 
           }
-
-          // Relaciona módulos de idiomas por tab
-          relatedLanguageModulesByTab(moduleAccordionList, ModuleType.ACCORDION);
 
         }
 
@@ -487,7 +481,8 @@ public class StrapiModulesBO {
    * @param superProductId
    */
   private void generateModuleBoxFromConfig(ModuleBoxDTO moduleBoxDto,
-      Map<Integer, List<Long>> moduleBoxList, LocaleStrapi locale, Integer superProductId) {
+      Map<Integer, List<Long>> moduleBoxList, LocaleStrapi locale, Integer superProductId,
+      String documentId) {
 
     Date today = new Date();
 
@@ -498,15 +493,16 @@ public class StrapiModulesBO {
 
         // Se crea una entrada en el modulo BOX para el producto dado
         Query query = entityManager.createNativeQuery(
-            "INSERT INTO CMSSTRAPI.module_boxes (title, tag, link, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
-        query.setParameter(1, moduleBoxDto.getTab(i + 1).getTitle().getLanguage(locale));
-        query.setParameter(2, moduleBoxDto.getTab(i + 1).getTag().getLanguage(locale));
-        query.setParameter(3, moduleBoxDto.getTab(i + 1).getLink().getLanguage(locale));
-        query.setParameter(4,
+            "INSERT INTO CMSSTRAPI.module_boxes (document_id, title, tag, link, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
+        query.setParameter(1, documentId);
+        query.setParameter(2, moduleBoxDto.getTab(i + 1).getTitle().getLanguage(locale));
+        query.setParameter(3, moduleBoxDto.getTab(i + 1).getTag().getLanguage(locale));
+        query.setParameter(4, moduleBoxDto.getTab(i + 1).getLink().getLanguage(locale));
+        query.setParameter(5,
             Integer.parseInt(moduleBoxDto.getTab(i + 1).getEnabled().getLanguage(locale)));
-        query.setParameter(5, today);
         query.setParameter(6, today);
-        query.setParameter(7, locale.getLabel());
+        query.setParameter(7, today);
+        query.setParameter(8, locale.getLabel());
         query.executeUpdate();
 
         String imageOrders = moduleBoxDto.getTab(i + 1).getItemsOrder();
@@ -536,18 +532,19 @@ public class StrapiModulesBO {
    * @param superProductId
    */
   private void generateModuleLinkDownloadFromConfig(ModuleLinkDownloadDTO moduleLinkDto,
-      List<Long> moduleLinkList, LocaleStrapi locale, Integer superProductId) {
+      List<Long> moduleLinkList, LocaleStrapi locale, Integer superProductId, String documentId) {
 
     Date today = new Date();
 
     // Se crea una entrada en el modulo BOX para el producto dado
     Query query = entityManager.createNativeQuery(
-        "INSERT INTO CMSSTRAPI.module_link_downloads (title, link, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
-    query.setParameter(1, moduleLinkDto.getTitle().getLanguage(locale));
-    query.setParameter(2, moduleLinkDto.getLink().getLanguage(locale));
-    query.setParameter(3, today);
+        "INSERT INTO CMSSTRAPI.module_link_downloads (document_id, title, link, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
+    query.setParameter(1, documentId);
+    query.setParameter(2, moduleLinkDto.getTitle().getLanguage(locale));
+    query.setParameter(3, moduleLinkDto.getLink().getLanguage(locale));
     query.setParameter(4, today);
-    query.setParameter(5, locale.getLabel());
+    query.setParameter(5, today);
+    query.setParameter(6, locale.getLabel());
     query.executeUpdate();
 
     // Obtén el ID generado por la base de datos
@@ -573,7 +570,8 @@ public class StrapiModulesBO {
    * @param superProductId
    */
   private void generateModuleAccordionFromConfig(ModuleAccordionDTO moduleAccordionDto,
-      Map<Integer, List<Long>> moduleAccordionList, LocaleStrapi locale, Integer superProductId) {
+      Map<Integer, List<Long>> moduleAccordionList, LocaleStrapi locale, Integer superProductId,
+      String documentId) {
 
     Date today = new Date();
 
@@ -584,20 +582,21 @@ public class StrapiModulesBO {
 
         // Se crea una entrada en el modulo ACCORDION para el producto dado
         Query query = entityManager.createNativeQuery(
-            "INSERT INTO CMSSTRAPI.module_accordions (title, description, title_link, link, category_analytics, title_class, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
-        query.setParameter(1, moduleAccordionDto.getTab(i + 1).getTitle().getLanguage(locale));
-        query.setParameter(2,
+            "INSERT INTO CMSSTRAPI.module_accordions (document_id, title, description, title_link, link, category_analytics, title_class, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
+        query.setParameter(1, documentId);
+        query.setParameter(2, moduleAccordionDto.getTab(i + 1).getTitle().getLanguage(locale));
+        query.setParameter(3,
             moduleAccordionDto.getTab(i + 1).getDescription().getLanguage(locale));
-        query.setParameter(3, moduleAccordionDto.getTab(i + 1).getTitleLink().getLanguage(locale));
-        query.setParameter(4, moduleAccordionDto.getTab(i + 1).getLink().getLanguage(locale));
-        query.setParameter(5,
+        query.setParameter(4, moduleAccordionDto.getTab(i + 1).getTitleLink().getLanguage(locale));
+        query.setParameter(5, moduleAccordionDto.getTab(i + 1).getLink().getLanguage(locale));
+        query.setParameter(6,
             moduleAccordionDto.getTab(i + 1).getCategoryAnalytics().getLanguage(locale));
-        query.setParameter(6, moduleAccordionDto.getTab(i + 1).getTitleClass());
-        query.setParameter(7,
+        query.setParameter(7, moduleAccordionDto.getTab(i + 1).getTitleClass());
+        query.setParameter(8,
             Integer.parseInt(moduleAccordionDto.getTab(i + 1).getEnabled().getLanguage(locale)));
-        query.setParameter(8, today);
         query.setParameter(9, today);
-        query.setParameter(10, locale.getLabel());
+        query.setParameter(10, today);
+        query.setParameter(11, locale.getLabel());
         query.executeUpdate();
 
         String imageOrders = moduleAccordionDto.getTab(i + 1).getItemsOrder();
@@ -625,7 +624,7 @@ public class StrapiModulesBO {
     Query query;
 
     String sql = ("INSERT INTO CMSSTRAPI.module_Y_super_product_id_links "
-        + "(module_X_id, super_product_id, module_X_order) values (?, ?, 1)")
+        + "(module_X_id, super_product_id, module_X_ord) values (?, ?, 1)")
             .replaceAll("Y", moduleType.getTable()).replaceAll("X", moduleType.getField());
 
     // Se crea una entrada en el modulo BOX para el producto dado
@@ -655,7 +654,7 @@ public class StrapiModulesBO {
 
           // Se añade la imagen principal
           query = entityManager.createNativeQuery(
-              "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES (?, ?, ?, ?, ?)");
+              "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES (?, ?, ?, ?, ?)");
           query.setParameter(1, imageId);
           query.setParameter(2, moduleId);
           query.setParameter(3, ImageRelatedType.MODULE_BOX.getLabel());
@@ -671,51 +670,6 @@ public class StrapiModulesBO {
   }
 
 
-  /**
-   * Creando relaciones entre los modulos en diferentes idiomas para cada Tab de producto.
-   * 
-   * @param moduleBoxList listado de identificadores de módulos en relación al tab de producto.
-   */
-  private void relatedLanguageModulesByTab(Map<Integer, List<Long>> moduleBoxList,
-      ModuleType moduleType) {
-
-    System.out.println("Creando relaciones entre el módulo y los diferentes idiomas por cada tab");
-
-    for (Map.Entry<Integer, List<Long>> entry : moduleBoxList.entrySet()) {
-      List<Long> moduleBoxIds = entry.getValue();
-
-      this.relatedLanguageModules(moduleBoxIds, moduleType);
-    }
-
-  }
-
-  /**
-   * Creando relaciones entre los modulos en diferentes idiomas para cada Tab de producto.
-   * 
-   * @param moduleBoxList listado de identificadores de módulos en relación al tab de producto.
-   */
-  private void relatedLanguageModules(List<Long> moduleBoxIds, ModuleType moduleType) {
-
-    String sql = ("INSERT INTO CMSSTRAPI.module_Y_localizations_links "
-        + "(module_X_id, inv_module_X_id, module_X_order) values (?, ?, ?)")
-            .replaceAll("Y", moduleType.getTable()).replaceAll("X", moduleType.getField());
-
-    for (int i = 0; i < moduleBoxIds.size(); i++) {
-      for (int j = 0; j < moduleBoxIds.size(); j++) {
-        if (i != j) {
-          // Se crea una entrada en la tabla que relaciona los distintos modulos entre si a
-          // partir de los idiomas definidos.
-          Query query = entityManager.createNativeQuery(sql);
-          query.setParameter(1, moduleBoxIds.get(i));
-          query.setParameter(2, moduleBoxIds.get(j));
-          query.setParameter(3, j + 1);
-          query.executeUpdate();
-        }
-      }
-
-    }
-
-  }
 
   @SuppressWarnings("unchecked")
   private List<Object[]> getModuleConfigFromHola(ModuleType moduleType, boolean onlyEnabled) {

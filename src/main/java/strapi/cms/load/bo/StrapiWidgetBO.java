@@ -11,6 +11,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import org.apache.commons.lang3.StringUtils;
+import strapi.cms.load.utils.Utils;
 
 @Stateless
 public class StrapiWidgetBO {
@@ -31,15 +32,11 @@ public class StrapiWidgetBO {
     entityManager = emf.createEntityManager();
     entityManager.getTransaction().begin();
 
-    Query query =
-        entityManager.createNativeQuery("delete from CMSSTRAPI.widgets_widget_type_links");
+    Query query = entityManager.createNativeQuery("delete from CMSSTRAPI.widgets_widget_type_lnk");
     query.executeUpdate();
     query = entityManager.createNativeQuery("delete from CMSSTRAPI.widget_types");
     query.executeUpdate();
-    query = entityManager.createNativeQuery("delete from CMSSTRAPI.widget_pages_widgets_links");
-    query.executeUpdate();
-    query =
-        entityManager.createNativeQuery("delete from CMSSTRAPI.widget_pages_localizations_links");
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.widget_pages_widgets_lnk");
     query.executeUpdate();
     query = entityManager.createNativeQuery("delete from CMSSTRAPI.widget_pages");
     query.executeUpdate();
@@ -84,12 +81,12 @@ public class StrapiWidgetBO {
         System.out.println(String.format("Importando widget de tipo: %s", name));
 
         query = entityManager.createNativeQuery(
-            "INSERT CMSSTRAPI.widget_types (name, configuration, config_required, created_at, updated_at, published_at, created_by_id, updated_by_id) "
+            "INSERT CMSSTRAPI.widget_types (document_id, name, configuration, config_required, created_at, updated_at, created_by_id, updated_by_id) "
                 + "VALUES (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
-        query.setParameter(1, name);
-        query.setParameter(2, StringUtils.isNotBlank(config) ? config : null);
-        query.setParameter(3, enabled);
-        query.setParameter(4, today);
+        query.setParameter(1, Utils.generateDocumentId());
+        query.setParameter(2, name);
+        query.setParameter(3, StringUtils.isNotBlank(config) ? config : null);
+        query.setParameter(4, enabled);
         query.setParameter(5, today);
         query.setParameter(6, today);
         query.executeUpdate();
@@ -139,12 +136,12 @@ public class StrapiWidgetBO {
         System.out.println(String.format("Importando widget: %s", name));
 
         query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widgets "
-            + "(name, configuration, active, created_at, updated_at, published_at, created_by_id, updated_by_id) "
+            + "(name, configuration, active, created_at, updated_at, created_by_id, updated_by_id) "
             + "VALUES (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
-        query.setParameter(1, name);
-        query.setParameter(2, StringUtils.isNotBlank(config) ? config : null);
-        query.setParameter(3, active);
-        query.setParameter(4, today);
+        query.setParameter(1, Utils.generateDocumentId());
+        query.setParameter(2, name);
+        query.setParameter(3, StringUtils.isNotBlank(config) ? config : null);
+        query.setParameter(4, active);
         query.setParameter(5, today);
         query.setParameter(6, today);
         query.executeUpdate();
@@ -153,7 +150,7 @@ public class StrapiWidgetBO {
         Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
         Long widgetId = ((Number) idQuery.getSingleResult()).longValue();
 
-        query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widgets_widget_type_links "
+        query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widgets_widget_type_lnk "
             + "(widget_id, widget_type_id) VALUES (?, (SELECT id FROM CMSSTRAPI.widget_types WHERE name = ?))");
         query.setParameter(1, widgetId);
         query.setParameter(2, typeName);
@@ -220,8 +217,8 @@ public class StrapiWidgetBO {
         }
 
         query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widget_pages "
-            + "(name, path, enabled, meta_title, meta_keywords, meta_description, locale, created_at, updated_at, published_at, created_by_id, updated_by_id) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
+            + "(name, path, enabled, meta_title, meta_keywords, meta_description, locale, created_at, updated_at, created_by_id, updated_by_id) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
         query.setParameter(1, name);
         query.setParameter(2, path);
         query.setParameter(3, enabled);
@@ -231,7 +228,6 @@ public class StrapiWidgetBO {
         query.setParameter(7, locale);
         query.setParameter(8, today);
         query.setParameter(9, today);
-        query.setParameter(10, today);
         query.executeUpdate();
 
         // Obtén el ID generado por la base de datos
@@ -243,12 +239,20 @@ public class StrapiWidgetBO {
 
       // Se añaden las relaciones idiomáticas entre los diferentes widgets
       widgetPageIdMap.forEach((name, ids) -> {
-        this.relatedLanguageWidgets(name, ids);
 
         // Creamos links entre widgets y widgetPages
         System.out.println("Generando relaciones entre widgets para el widget page: " + name);
 
+        String documentId = Utils.generateDocumentId();
+
         for (Long id : ids) {
+
+          Query query2 = entityManager
+              .createNativeQuery("UPDATE CMSSTRAPI.widget_pages SET document_id= ? WHERE id=?");
+          query2.setParameter(1, documentId);
+          query2.setParameter(3, id);
+          query2.executeUpdate();
+
           this.createLinkBetweenWidgetAndWidgetPage(name, id);
         }
 
@@ -294,8 +298,8 @@ public class StrapiWidgetBO {
         String widgetName = (String) row[0];
         Long orderPage = ((Number) row[1]).longValue();
 
-        query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widget_pages_widgets_links "
-            + "(widget_page_id, widget_id, widget_order) VALUES (?, (SELECT id FROM CMSSTRAPI.widgets WHERE name = ?), ?)");
+        query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widget_pages_widgets_lnk "
+            + "(widget_page_id, widget_id, widget_ord) VALUES (?, (SELECT id FROM CMSSTRAPI.widgets WHERE name = ?), ?)");
         query.setParameter(1, widgetPageId);
         query.setParameter(2, widgetName);
         query.setParameter(3, orderPage);
@@ -304,36 +308,6 @@ public class StrapiWidgetBO {
     }
   }
 
-  /**
-   * Creando relaciones entre los modulos en diferentes idiomas para cada widget page.
-   * 
-   * @param name widget page name.
-   * @param moduleBoxList listado de identificadores de widgets pages en diferentes idiomas
-   *        asociados a uno determinado.
-   */
-  private void relatedLanguageWidgets(String name, List<Long> widgetIds) {
-
-    System.out.println("Generando relaciones idiomaticas para el widget page: " + name);
-
-    String sql = ("INSERT INTO CMSSTRAPI.widget_pages_localizations_links "
-        + "(widget_page_id, inv_widget_page_id, widget_page_order) values (?, ?, ?)");
-
-    for (int i = 0; i < widgetIds.size(); i++) {
-      for (int j = 0; j < widgetIds.size(); j++) {
-        if (i != j) {
-          // Se crea una entrada en la tabla que relaciona los distintos modulos entre si a
-          // partir de los idiomas definidos.
-          Query query = entityManager.createNativeQuery(sql);
-          query.setParameter(1, widgetIds.get(i));
-          query.setParameter(2, widgetIds.get(j));
-          query.setParameter(3, j + 1);
-          query.executeUpdate();
-        }
-      }
-
-    }
-
-  }
 
 }
 

@@ -18,6 +18,7 @@ import strapi.cms.load.dto.ImageDTO;
 import strapi.cms.load.dto.UploadImageResultDTO;
 import strapi.cms.load.service.StrapiRequesterService;
 import strapi.cms.load.utils.Constants;
+import strapi.cms.load.utils.Utils;
 import strapi.cms.loads.enums.ImageField;
 import strapi.cms.loads.enums.ImageRelatedType;
 import strapi.cms.loads.enums.LocaleStrapi;
@@ -41,9 +42,9 @@ public class StrapiImagesBO {
     entityManager = emf.createEntityManager();
     entityManager.getTransaction().begin();
 
-    Query query = entityManager.createNativeQuery("delete from CMSSTRAPI.files_related_morphs");
+    Query query = entityManager.createNativeQuery("delete from CMSSTRAPI.files_related_mph");
     query.executeUpdate();
-    query = entityManager.createNativeQuery("delete from CMSSTRAPI.files_folder_links");
+    query = entityManager.createNativeQuery("delete from CMSSTRAPI.files_folder_lnk");
     query.executeUpdate();
     query = entityManager.createNativeQuery("delete from CMSSTRAPI.files");
     query.executeUpdate();
@@ -105,11 +106,12 @@ public class StrapiImagesBO {
           // Se añade en STRAPI la relación id de imagen de ECNR y el id de imagen de STRAPI
           if (uploadResult != null) {
             query = entityManager.createNativeQuery(
-                "INSERT INTO CMSSTRAPI.image_relateds (image_ecnr, image_strapi, created_at, updated_at, created_by_id) VALUES (?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users))");
-            query.setParameter(1, imageDto.getImageId());
-            query.setParameter(2, uploadResult.getId());
-            query.setParameter(3, today);
+                "INSERT INTO CMSSTRAPI.image_relateds (document_id, image_ecnr, image_strapi, created_at, updated_at, created_by_id) VALUES (?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users))");
+            query.setParameter(1, Utils.generateDocumentId());
+            query.setParameter(2, imageDto.getImageId());
+            query.setParameter(3, uploadResult.getId());
             query.setParameter(4, today);
+            query.setParameter(5, today);
 
             // Ejecutar la consulta
             query.executeUpdate();
@@ -169,7 +171,7 @@ public class StrapiImagesBO {
 
               // Se añade la imagen principal
               query = entityManager.createNativeQuery(
-                  "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
+                  "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
               query.setParameter(1, imageSortSplit[i]);
               query.setParameter(2, superProductCode);
               query.setParameter(3, locale.getLabel());
@@ -182,7 +184,7 @@ public class StrapiImagesBO {
 
               // Se añade la imagen de header
               query = entityManager.createNativeQuery(
-                  "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
+                  "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
               query.setParameter(1, imageSortSplit[i]);
               query.setParameter(2, superProductCode);
               query.setParameter(3, locale.getLabel());
@@ -195,7 +197,7 @@ public class StrapiImagesBO {
 
               // Se añade el listado de imágenes al carrusel de imágenes del superProducto
               query = entityManager.createNativeQuery(
-                  "INSERT INTO CMSSTRAPI.files_related_morphs (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
+                  "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
               query.setParameter(1, imageSortSplit[i]);
               query.setParameter(2, superProductCode);
               query.setParameter(3, locale.getLabel());
