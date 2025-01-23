@@ -105,6 +105,9 @@ public class StrapiImagesBO {
 
           // Se añade en STRAPI la relación id de imagen de ECNR y el id de imagen de STRAPI
           if (uploadResult != null) {
+            System.out.println(String.format("Subiendo imagen con name: %s e id: %s a Strapi",
+                uploadResult.getName(), uploadResult.getId()));
+
             query = entityManager.createNativeQuery(
                 "INSERT INTO CMSSTRAPI.image_relateds (document_id, image_ecnr, image_strapi, created_at, updated_at, created_by_id) VALUES (?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users))");
             query.setParameter(1, Utils.generateDocumentId());
@@ -156,55 +159,67 @@ public class StrapiImagesBO {
 
         String[] imageSortSplit = imageSortList.split(",");
 
-        System.out.println(String.format(
-            "Añadiendo relación entre imágenes de Hola y el super producto: %s", superProductCode));
-
         // Añadimos relaciones de imagenes superproductos para todos los idiomas de éste
         for (int i = 0; i < imageSortSplit.length; i++) {
 
           // Creamos una entrada en el módulo de Link Download para cada uno de los idiomas dados
           for (LocaleStrapi locale : LocaleStrapi.getValues()) {
 
-            // Para la primera imagen la añadimos tanto como imagen principal, como al header y al
-            // carrusel
-            if (i == 0) {
+            System.out.println(String.format(
+                "Añadiendo relación entre la imágenes de Hola con id: %s y el super producto: %s, para el idioma: %s",
+                imageSortSplit[i], superProductCode, locale.getLabel()));
 
-              // Se añade la imagen principal
-              query = entityManager.createNativeQuery(
-                  "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
-              query.setParameter(1, imageSortSplit[i]);
-              query.setParameter(2, superProductCode);
-              query.setParameter(3, locale.getLabel());
-              query.setParameter(4, ImageRelatedType.SUPER_PRODUCT.getLabel());
-              query.setParameter(5, ImageField.MAIN_IMAGE_SP.getLabel());
-              query.setParameter(6, i + 1);
-              query.executeUpdate();
+            query = entityManager.createNativeQuery(
+                "SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?");
+            query.setParameter(1, superProductCode);
+            query.setParameter(2, locale.getLabel());
+            List<Integer> spIdList = query.getResultList();
 
-            } else if (i == 1) {
+            if (spIdList != null) {
 
-              // Se añade la imagen de header
-              query = entityManager.createNativeQuery(
-                  "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
-              query.setParameter(1, imageSortSplit[i]);
-              query.setParameter(2, superProductCode);
-              query.setParameter(3, locale.getLabel());
-              query.setParameter(4, ImageRelatedType.SUPER_PRODUCT.getLabel());
-              query.setParameter(5, ImageField.HEADER_IMAGE_SP.getLabel());
-              query.setParameter(6, i + 1);
-              query.executeUpdate();
+              // Iteramos sobre cada una de los identificadores de imágenes
+              for (Integer spId : spIdList) {
 
-            } else {
+                // Para la primera imagen la añadimos tanto como imagen principal, como al header y
+                // al
+                // carrusel
+                if (i == 0) {
 
-              // Se añade el listado de imágenes al carrusel de imágenes del superProducto
-              query = entityManager.createNativeQuery(
-                  "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), (SELECT id from CMSSTRAPI.super_products WHERE code = ? and locale = ?), ?, ?, ?)");
-              query.setParameter(1, imageSortSplit[i]);
-              query.setParameter(2, superProductCode);
-              query.setParameter(3, locale.getLabel());
-              query.setParameter(4, ImageRelatedType.SUPER_PRODUCT.getLabel());
-              query.setParameter(5, ImageField.IMAGE_SP.getLabel());
-              query.setParameter(6, i + 1);
-              query.executeUpdate();
+                  // Se añade la imagen principal
+                  query = entityManager.createNativeQuery(
+                      "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), ?, ?, ?, ?)");
+                  query.setParameter(1, imageSortSplit[i]);
+                  query.setParameter(2, spId);
+                  query.setParameter(3, ImageRelatedType.SUPER_PRODUCT.getLabel());
+                  query.setParameter(4, ImageField.MAIN_IMAGE_SP.getLabel());
+                  query.setParameter(5, i + 1);
+                  query.executeUpdate();
+
+                } else if (i == 1) {
+
+                  // Se añade la imagen de header
+                  query = entityManager.createNativeQuery(
+                      "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), ?, ?, ?, ?)");
+                  query.setParameter(1, imageSortSplit[i]);
+                  query.setParameter(2, spId);
+                  query.setParameter(3, ImageRelatedType.SUPER_PRODUCT.getLabel());
+                  query.setParameter(4, ImageField.HEADER_IMAGE_SP.getLabel());
+                  query.setParameter(5, i + 1);
+                  query.executeUpdate();
+
+                } else {
+
+                  // Se añade el listado de imágenes al carrusel de imágenes del superProducto
+                  query = entityManager.createNativeQuery(
+                      "INSERT INTO CMSSTRAPI.files_related_mph (file_id, related_id, related_type, field, `order`) VALUES ((SELECT image_strapi from CMSSTRAPI.image_relateds WHERE image_ecnr = ?), ?, ?, ?, ?)");
+                  query.setParameter(1, imageSortSplit[i]);
+                  query.setParameter(2, spId);
+                  query.setParameter(3, ImageRelatedType.SUPER_PRODUCT.getLabel());
+                  query.setParameter(4, ImageField.IMAGE_SP.getLabel());
+                  query.setParameter(5, i + 1);
+                  query.executeUpdate();
+                }
+              }
             }
           }
 
@@ -218,7 +233,6 @@ public class StrapiImagesBO {
   }
 
   public Path getImageFromUrl(ImageDTO imageDto) {
-
     String environment = System.getenv("ENVIRONMENT");
     String baseURL =
         environment.equalsIgnoreCase("pro") ? Constants.IMAGE_URL_PRO : Constants.IMAGE_URL_PRE;

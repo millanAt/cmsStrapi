@@ -59,7 +59,7 @@ public class StrapiRequesterService extends RestClient {
       Response response = client.target(baseURL + imagePath).request(MediaType.MULTIPART_FORM_DATA)
           .headers(headers).post(Entity.entity(multiPart, MediaType.MULTIPART_FORM_DATA));
 
-      if (response.getStatus() == 200) {
+      if (response.getStatus() == 201) {
         resultList = response.readEntity(new GenericType<List<UploadImageResultDTO>>() {});
       }
 

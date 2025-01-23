@@ -136,7 +136,7 @@ public class StrapiWidgetBO {
         System.out.println(String.format("Importando widget: %s", name));
 
         query = entityManager.createNativeQuery("INSERT INTO CMSSTRAPI.widgets "
-            + "(name, configuration, active, created_at, updated_at, created_by_id, updated_by_id) "
+            + "(document_id, name, configuration, active, created_at, updated_at, created_by_id, updated_by_id) "
             + "VALUES (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users))");
         query.setParameter(1, Utils.generateDocumentId());
         query.setParameter(2, name);
@@ -250,7 +250,7 @@ public class StrapiWidgetBO {
           Query query2 = entityManager
               .createNativeQuery("UPDATE CMSSTRAPI.widget_pages SET document_id= ? WHERE id=?");
           query2.setParameter(1, documentId);
-          query2.setParameter(3, id);
+          query2.setParameter(2, id);
           query2.executeUpdate();
 
           this.createLinkBetweenWidgetAndWidgetPage(name, id);
