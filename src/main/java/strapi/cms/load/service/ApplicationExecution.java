@@ -4,6 +4,7 @@ import java.io.IOException;
 import javax.persistence.EntityManagerFactory;
 import strapi.cms.load.bo.StrapiImagesBO;
 import strapi.cms.load.bo.StrapiModulesBO;
+import strapi.cms.load.bo.StrapiPublishCollectionsBO;
 import strapi.cms.load.bo.StrapiWidgetBO;
 import strapi.cms.load.utils.EntityManagerUtil;
 
@@ -32,6 +33,9 @@ public class ApplicationExecution {
 
       // ------------- CARGA WIDGETS ---------------------------
       loadWidgets(emf);
+
+      // ---------------- PUBLICAR COLECCIONES -------------------------
+      publishCollections(emf);
     }
   }
 
@@ -93,6 +97,19 @@ public class ApplicationExecution {
     strapiWidgetBO.createWidgetPages();
 
     System.out.println("----------------- Creación de widgets finalizada -----------------");
+  }
+
+  public static void publishCollections(EntityManagerFactory emf) throws IOException {
+    System.out.println("//////////// Publicando colecciones ////////////");
+    StrapiPublishCollectionsBO strapiPublishCollectionsBO = new StrapiPublishCollectionsBO(emf);
+
+    // Elimina publicaciones de todas las colecciones
+    strapiPublishCollectionsBO.initializePublishCollections();
+
+    // Publica todas las colecciones en Strapi
+    strapiPublishCollectionsBO.publishCollections();
+
+    System.out.println("----------------- Publicación de colecciones finalizada -----------------");
   }
 
 }
