@@ -15,7 +15,7 @@ public class Constants {
   public static final String RESOURCE_DIR = "src/main/resources/";
 
   public static final String STRAPI_COLLECTIONS =
-      "countries,channels,super_products,group_entities,promos,super_product_group_mis,super_product_channels,related_super_products,products,variants,vouchers,module_boxes,module_link_downloads,module_accordions,widget_types,widget_pages,widgets";
+      "countries,channels,super_products,group_entities,promos,super_product_group_mis,super_product_channels,related_super_products,products,variants,vouchers,module_boxes,module_link_downloads,module_accordions,widget_types,widgets,widget_pages,op_verificadas_configs";
 
   public static final String STRAPI_GROUP_ENTITIES = "group_entities";
   public static final String STRAPI_SP_GROUP_ENTITY = "super_products_groups";
