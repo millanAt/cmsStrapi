@@ -134,9 +134,10 @@ public class StrapiModulesBO {
               // Se actualiza el superproducto activando/desactivando el módulo link download según
               // venga dado
               Query query = entityManager.createNativeQuery(
-                  "UPDATE CMSSTRAPI.super_products SET module_link_download= ? WHERE document_id=?");
+                  "UPDATE CMSSTRAPI.super_products SET module_link_download= ? WHERE document_id=? and locale = ?");
               query.setParameter(1, enabled);
               query.setParameter(2, spDocumentId);
+              query.setParameter(3, locale.getLabel());
               query.executeUpdate();
 
               // Genera los diferetes modulos link download para cada uno de los productos
@@ -214,12 +215,13 @@ public class StrapiModulesBO {
 
               // Se actualiza el superproducto con el título del modulo box
               Query query = entityManager.createNativeQuery(
-                  "UPDATE CMSSTRAPI.super_products SET module_box_title= ?, module_box= ? WHERE document_id=?");
+                  "UPDATE CMSSTRAPI.super_products SET module_box_title= ?, module_box= ? WHERE document_id=? and locale=?");
               query.setParameter(1,
                   moduleBoxDto.getTitle() != null ? moduleBoxDto.getTitle().getLanguage(locale)
                       : null);
               query.setParameter(2, enabled);
               query.setParameter(3, spDocumentId);
+              query.setParameter(4, locale.getLabel());
               query.executeUpdate();
 
               // Genera los diferetes modulos BOX (tab1, tab2, ...) para cada uno de los productos
@@ -301,13 +303,14 @@ public class StrapiModulesBO {
             if (spDocumentId != null) {
               // Se actualiza el superproducto con el título del modulo box
               Query query = entityManager.createNativeQuery(
-                  "UPDATE CMSSTRAPI.super_products SET module_accordion_title= ?, module_accordion= ? WHERE document_id=?");
+                  "UPDATE CMSSTRAPI.super_products SET module_accordion_title= ?, module_accordion= ? WHERE document_id=? and locale = ?");
               query.setParameter(1,
                   moduleAccordionDto.getTitle() != null
                       ? moduleAccordionDto.getTitle().getLanguage(locale)
                       : null);
               query.setParameter(2, enabled);
               query.setParameter(3, spDocumentId);
+              query.setParameter(4, locale.getLabel());
               query.executeUpdate();
 
               // Genera los diferetes modulos ACCORDION (tab1, tab2, ...) para cada uno de los
@@ -382,13 +385,14 @@ public class StrapiModulesBO {
             if (spDocumentId != null) {
               // Se actualiza el superproducto con el estado del modulo slider
               Query query = entityManager.createNativeQuery(
-                  "UPDATE CMSSTRAPI.super_products SET module_slider_title= ?, module_slider= ? WHERE document_id=?");
+                  "UPDATE CMSSTRAPI.super_products SET module_slider_title= ?, module_slider= ? WHERE document_id=? and locale = ?");
               query.setParameter(1,
                   moduleSliderDto.getTitle() != null
                       ? moduleSliderDto.getTitle().getLanguage(locale)
                       : null);
               query.setParameter(2, enabled);
               query.setParameter(3, spDocumentId);
+              query.setParameter(4, locale.getLabel());
               query.executeUpdate();
             }
 
@@ -452,9 +456,10 @@ public class StrapiModulesBO {
 
             // Se actualiza el superproducto con el estado del modulo corporación logo
             Query query = entityManager.createNativeQuery(
-                "UPDATE CMSSTRAPI.super_products SET  module_corporation_logo= ? WHERE document_id=?");
+                "UPDATE CMSSTRAPI.super_products SET  module_corporation_logo= ? WHERE document_id=? and locale=?");
             query.setParameter(1, enabled);
             query.setParameter(2, spDocumentId);
+            query.setParameter(3, locale.getLabel());
             query.executeUpdate();
           }
 
@@ -481,58 +486,60 @@ public class StrapiModulesBO {
    * @param spDocumentId
    * @param documentId
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void generateModuleBoxFromConfig(ModuleBoxDTO moduleBoxDto,
       Map<Integer, List<Long>> moduleBoxList, LocaleStrapi locale, String spDocumentId,
       String documentId) {
 
     Date today = new Date();
 
-    Query query = entityManager
-        .createNativeQuery("SELECT id from CMSSTRAPI.super_products WHERE document_id = ?");
+    Query query = entityManager.createNativeQuery(
+        "SELECT id, published_at from CMSSTRAPI.super_products WHERE document_id = ? and locale=?");
     query.setParameter(1, spDocumentId);
-    List<Integer> spIdList = query.getResultList();
+    query.setParameter(2, locale.getLabel());
+    List<Object[]> spIdList = query.getResultList();
 
-    if (spIdList != null) {
+    // Iteramos sobre cada una de los identificadores de superproductos
+    for (Iterator iterator = spIdList.iterator(); iterator.hasNext();) {
+      Object[] row = (Object[]) iterator.next();
 
-      // Iteramos sobre cada una de los identificadores de superproductos
-      for (Integer spId : spIdList) {
+      Integer id = (Integer) row[0];
+      Date publishedDate = (Date) row[1];
 
-        // Se creará un modulo por cada tab (4 tab)
-        for (int i = 0; i < 4; i++) {
+      // Se creará un modulo por cada tab (4 tab)
+      for (int i = 0; i < 4; i++) {
 
-          if (moduleBoxDto.getTab(i + 1) != null) {
+        if (moduleBoxDto.getTab(i + 1) != null) {
 
-            // Se crea una entrada en el modulo BOX para el producto dado
-            query = entityManager.createNativeQuery(
-                "INSERT INTO CMSSTRAPI.module_boxes (document_id, title, tag, link, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
-            query.setParameter(1, documentId);
-            query.setParameter(2, moduleBoxDto.getTab(i + 1).getTitle().getLanguage(locale));
-            query.setParameter(3, moduleBoxDto.getTab(i + 1).getTag().getLanguage(locale));
-            query.setParameter(4, moduleBoxDto.getTab(i + 1).getLink().getLanguage(locale));
-            query.setParameter(5,
-                Integer.parseInt(moduleBoxDto.getTab(i + 1).getEnabled().getLanguage(locale)));
-            query.setParameter(6, today);
-            query.setParameter(7, today);
-            query.setParameter(8, locale.getLabel());
-            query.executeUpdate();
+          // Se crea una entrada en el modulo BOX para el producto dado
+          query = entityManager.createNativeQuery(
+              "INSERT INTO CMSSTRAPI.module_boxes (document_id, title, tag, link, enabled, created_at, updated_at, published_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
+          query.setParameter(1, documentId);
+          query.setParameter(2, moduleBoxDto.getTab(i + 1).getTitle().getLanguage(locale));
+          query.setParameter(3, moduleBoxDto.getTab(i + 1).getTag().getLanguage(locale));
+          query.setParameter(4, moduleBoxDto.getTab(i + 1).getLink().getLanguage(locale));
+          query.setParameter(5,
+              Integer.parseInt(moduleBoxDto.getTab(i + 1).getEnabled().getLanguage(locale)));
+          query.setParameter(6, today);
+          query.setParameter(7, today);
+          query.setParameter(8, publishedDate);
+          query.setParameter(9, locale.getLabel());
+          query.executeUpdate();
 
-            String imageOrders = moduleBoxDto.getTab(i + 1).getItemsOrder();
+          String imageOrders = moduleBoxDto.getTab(i + 1).getItemsOrder();
 
-            // Obtén el ID generado por la base de datos
-            Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
-            Long moduleBoxId = ((Number) idQuery.getSingleResult()).longValue();
+          // Obtén el ID generado por la base de datos
+          Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
+          Long moduleBoxId = ((Number) idQuery.getSingleResult()).longValue();
 
-            // Agrupamos el listado de identificadores de modulo para los diferentes idiomas en
-            // función
-            // del tab
-            moduleBoxList.computeIfAbsent(i + 1, k -> new ArrayList<>()).add(moduleBoxId);
+          // Agrupamos el listado de identificadores de modulo para los diferentes idiomas en
+          // función del tab
+          moduleBoxList.computeIfAbsent(i + 1, k -> new ArrayList<>()).add(moduleBoxId);
 
-            createProductModuleRelationAndAssignImages(imageOrders, spId, moduleBoxId,
-                ModuleType.BOX);
-          }
+          createProductModuleRelationAndAssignImages(imageOrders, id, moduleBoxId, ModuleType.BOX);
         }
       }
+
     }
 
   }
@@ -546,45 +553,49 @@ public class StrapiModulesBO {
    * @param locale
    * @param superProductId
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void generateModuleLinkDownloadFromConfig(ModuleLinkDownloadDTO moduleLinkDto,
       List<Long> moduleLinkList, LocaleStrapi locale, String spDocumentId, String documentId) {
 
     Date today = new Date();
 
-    Query query = entityManager
-        .createNativeQuery("SELECT id from CMSSTRAPI.super_products WHERE document_id = ?");
+    Query query = entityManager.createNativeQuery(
+        "SELECT id from CMSSTRAPI.super_products WHERE document_id = ? and locale = ?");
     query.setParameter(1, spDocumentId);
-    List<Integer> spIdList = query.getResultList();
+    query.setParameter(2, locale.getLabel());
+    List<Object[]> spIdList = query.getResultList();
 
-    if (spIdList != null) {
+    // Iteramos sobre cada una de los identificadores de superproductos
+    for (Iterator iterator = spIdList.iterator(); iterator.hasNext();) {
+      Object[] row = (Object[]) iterator.next();
 
-      // Iteramos sobre cada una de los identificadores de superproductos
-      for (Integer spId : spIdList) {
+      Integer id = (Integer) row[0];
+      Date publishedDate = (Date) row[1];
 
-        // Se crea una entrada en el modulo BOX para el producto dado
-        query = entityManager.createNativeQuery(
-            "INSERT INTO CMSSTRAPI.module_link_downloads (document_id, title, link, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
-        query.setParameter(1, documentId);
-        query.setParameter(2, moduleLinkDto.getTitle().getLanguage(locale));
-        query.setParameter(3, moduleLinkDto.getLink().getLanguage(locale));
-        query.setParameter(4, today);
-        query.setParameter(5, today);
-        query.setParameter(6, locale.getLabel());
-        query.executeUpdate();
+      // Se crea una entrada en el modulo BOX para el producto dado
+      query = entityManager.createNativeQuery(
+          "INSERT INTO CMSSTRAPI.module_link_downloads (document_id, title, link, created_at, updated_at, published_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
+      query.setParameter(1, documentId);
+      query.setParameter(2, moduleLinkDto.getTitle().getLanguage(locale));
+      query.setParameter(3, moduleLinkDto.getLink().getLanguage(locale));
+      query.setParameter(4, today);
+      query.setParameter(5, today);
+      query.setParameter(6, publishedDate);
+      query.setParameter(7, locale.getLabel());
+      query.executeUpdate();
 
-        // Obtén el ID generado por la base de datos
-        Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
-        Long moduleLinkId = ((Number) idQuery.getSingleResult()).longValue();
+      // Obtén el ID generado por la base de datos
+      Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
+      Long moduleLinkId = ((Number) idQuery.getSingleResult()).longValue();
 
-        // Agrupamos el listado de identificadores de modulo para los diferentes idiomas
-        moduleLinkList.add(moduleLinkId);
-        String imageOrders = null;
+      // Agrupamos el listado de identificadores de modulo para los diferentes idiomas
+      moduleLinkList.add(moduleLinkId);
+      String imageOrders = null;
 
-        createProductModuleRelationAndAssignImages(imageOrders, spId, moduleLinkId,
-            ModuleType.LINK_DOWNLOAD);
-      }
+      createProductModuleRelationAndAssignImages(imageOrders, id, moduleLinkId,
+          ModuleType.LINK_DOWNLOAD);
     }
+
   }
 
   /**
@@ -597,66 +608,70 @@ public class StrapiModulesBO {
    * @param spDocumentId
    * @param documentId
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void generateModuleAccordionFromConfig(ModuleAccordionDTO moduleAccordionDto,
       Map<Integer, List<Long>> moduleAccordionList, LocaleStrapi locale, String spDocumentId,
       String documentId) {
 
     Date today = new Date();
 
-    Query query = entityManager
-        .createNativeQuery("SELECT id from CMSSTRAPI.super_products WHERE document_id = ?");
+    Query query = entityManager.createNativeQuery(
+        "SELECT id from CMSSTRAPI.super_products WHERE document_id = ? and locale = ?");
     query.setParameter(1, spDocumentId);
-    List<Integer> spIdList = query.getResultList();
+    query.setParameter(2, locale.getLabel());
+    List<Object[]> spIdList = query.getResultList();
 
-    if (spIdList != null) {
+    // Iteramos sobre cada una de los identificadores de superproductos
+    for (Iterator iterator = spIdList.iterator(); iterator.hasNext();) {
+      Object[] row = (Object[]) iterator.next();
 
-      // Iteramos sobre cada una de los identificadores de superproductos
-      for (Integer spId : spIdList) {
+      Integer id = (Integer) row[0];
+      Date publishedDate = (Date) row[1];
 
-        // Se creará un modulo por cada tab (4 tab)
-        for (int i = 0; i < 4; i++) {
 
-          if (moduleAccordionDto.getTab(i + 1) != null) {
+      // Se creará un modulo por cada tab (4 tab)
+      for (int i = 0; i < 4; i++) {
 
-            // Se crea una entrada en el modulo ACCORDION para el producto dado
-            query = entityManager.createNativeQuery(
-                "INSERT INTO CMSSTRAPI.module_accordions (document_id, title, description, title_link, link, category_analytics, title_class, enabled, created_at, updated_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
-            query.setParameter(1, documentId);
-            query.setParameter(2, moduleAccordionDto.getTab(i + 1).getTitle().getLanguage(locale));
-            query.setParameter(3,
-                moduleAccordionDto.getTab(i + 1).getDescription().getLanguage(locale));
-            query.setParameter(4,
-                moduleAccordionDto.getTab(i + 1).getTitleLink().getLanguage(locale));
-            query.setParameter(5, moduleAccordionDto.getTab(i + 1).getLink().getLanguage(locale));
-            query.setParameter(6,
-                moduleAccordionDto.getTab(i + 1).getCategoryAnalytics().getLanguage(locale));
-            query.setParameter(7, moduleAccordionDto.getTab(i + 1).getTitleClass());
-            query.setParameter(8, Integer
-                .parseInt(moduleAccordionDto.getTab(i + 1).getEnabled().getLanguage(locale)));
-            query.setParameter(9, today);
-            query.setParameter(10, today);
-            query.setParameter(11, locale.getLabel());
-            query.executeUpdate();
+        if (moduleAccordionDto.getTab(i + 1) != null) {
 
-            String imageOrders = moduleAccordionDto.getTab(i + 1).getItemsOrder();
+          // Se crea una entrada en el modulo ACCORDION para el producto dado
+          query = entityManager.createNativeQuery(
+              "INSERT INTO CMSSTRAPI.module_accordions (document_id, title, description, title_link, link, category_analytics, title_class, enabled, created_at, updated_at, published_at, created_by_id, updated_by_id, locale) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (select MIN(id) from CMSSTRAPI.admin_users), (select MIN(id) from CMSSTRAPI.admin_users), ?)");
+          query.setParameter(1, documentId);
+          query.setParameter(2, moduleAccordionDto.getTab(i + 1).getTitle().getLanguage(locale));
+          query.setParameter(3,
+              moduleAccordionDto.getTab(i + 1).getDescription().getLanguage(locale));
+          query.setParameter(4,
+              moduleAccordionDto.getTab(i + 1).getTitleLink().getLanguage(locale));
+          query.setParameter(5, moduleAccordionDto.getTab(i + 1).getLink().getLanguage(locale));
+          query.setParameter(6,
+              moduleAccordionDto.getTab(i + 1).getCategoryAnalytics().getLanguage(locale));
+          query.setParameter(7, moduleAccordionDto.getTab(i + 1).getTitleClass());
+          query.setParameter(8,
+              Integer.parseInt(moduleAccordionDto.getTab(i + 1).getEnabled().getLanguage(locale)));
+          query.setParameter(9, today);
+          query.setParameter(10, today);
+          query.setParameter(11, publishedDate);
+          query.setParameter(12, locale.getLabel());
+          query.executeUpdate();
 
-            // Obtén el ID generado por la base de datos
-            Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
-            Long moduleAccordionId = ((Number) idQuery.getSingleResult()).longValue();
+          String imageOrders = moduleAccordionDto.getTab(i + 1).getItemsOrder();
 
-            // Agrupamos el listado de identificadores de modulo para los diferentes idiomas en
-            // función
-            // del tab
-            moduleAccordionList.computeIfAbsent(i + 1, k -> new ArrayList<>())
-                .add(moduleAccordionId);
+          // Obtén el ID generado por la base de datos
+          Query idQuery = entityManager.createNativeQuery("SELECT LAST_INSERT_ID()");
+          Long moduleAccordionId = ((Number) idQuery.getSingleResult()).longValue();
 
-            createProductModuleRelationAndAssignImages(imageOrders, spId, moduleAccordionId,
-                ModuleType.ACCORDION);
-          }
+          // Agrupamos el listado de identificadores de modulo para los diferentes idiomas en
+          // función
+          // del tab
+          moduleAccordionList.computeIfAbsent(i + 1, k -> new ArrayList<>()).add(moduleAccordionId);
+
+          createProductModuleRelationAndAssignImages(imageOrders, id, moduleAccordionId,
+              ModuleType.ACCORDION);
         }
       }
     }
+
 
   }
 
